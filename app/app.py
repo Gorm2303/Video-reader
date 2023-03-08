@@ -16,7 +16,8 @@ def index():
 
 @app.route('/videos')
 def get_videos():
-    video_list = list(videosCollection.find)
+    videos = videosCollection.find
+    video_list = list(videos)
     return jsonify(video_list)
 
 @app.route('/videos/<string:video_id>', methods=['GET'])
