@@ -1,49 +1,43 @@
 from flask import Flask, jsonify
-from pymongo import MongoClient
+from pymongo import MongoClient, errors
+from bson.objectid import ObjectId
 
 app = Flask(__name__)
 
 # Connect to MongoDB database
-client = MongoClient()
+client = MongoClient('localhost', 27017, username='root', password='root')
 db = client['video_db']
-videos = db['videos']
+videosCollection = db['videos']
 
-# Define API endpoints
+
 @app.route('/')
 def index():
     return 'Welcome to the Video API!'
 
 @app.route('/videos')
 def get_videos():
-    results = []
-    for video in videos.find():
-        results.append({
-            'id': str(video['_id']),
-            'title': video['title'],
-            'description': video['description'],
-            'genres': video['genres'],
-            'length': video['length'],
-            'release_date': video['release_date'],
-            'image': video['image']
-        })
-    return jsonify(results)
+    video_list = list(videosCollection.find)
+    return jsonify(video_list)
 
-@app.route('/videos/<string:video_id>')
+@app.route('/videos/<string:video_id>', methods=['GET'])
 def get_video(video_id):
-    video = videos.find_one({ '_id': ObjectId(video_id) })
-    if video is None:
-        return jsonify({ 'error': 'Video not found' }), 404
-    else:
-        result = {
-            'id': str(video['_id']),
-            'title': video['title'],
-            'description': video['description'],
-            'genres': video['genres'],
-            'length': video['length'],
-            'release_date': video['release_date'],
-            'image': video['image']
-        }
-        return jsonify(result)
+    try:
+        # Convert the video_id string to a BSON ObjectId
+        video_id = ObjectId(video_id)
+        # Find the video metadata document with the matching ObjectId
+        video = videosCollection.find_one({'_id': video_id})
+        # Check if a video with the specified ID was found
+        if video is not None:
+            # Convert the ObjectId to a string to include in the JSON response
+            video['_id'] = str(video['_id'])
+            # Return the video metadata as a JSON response
+            return jsonify(video)
+        else:
+            # Return a 404 error response if the video was not found
+            return jsonify({'error': 'Video not found'}), 404
+    except errors.InvalidId:
+        # Return a 400 error response if the video ID is invalid
+        return jsonify({'error': 'Invalid video ID'}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
