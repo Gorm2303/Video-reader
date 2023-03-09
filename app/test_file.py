@@ -8,7 +8,7 @@ def test_client():
     flask_app = app
     testing_client = flask_app.test_client()
     # Establish a test MongoDB connection and populate the database with test data
-    test_client = MongoClient('mongodb://localhost:27017/testdb')
+    test_client = MongoClient('mongodb+srv://admin:admin@cluster0.acahawh.mongodb.net/?retryWrites=true&w=majority')
     test_db = test_client['testdb']
     test_collection = test_db['video_metadata']
     test_data = [
