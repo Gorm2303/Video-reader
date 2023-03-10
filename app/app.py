@@ -14,7 +14,7 @@ videosCollection = db['videos']
 def index():
     return 'Welcome to the Video API!'
 
-@app.route('/videos')
+@app.route('/api/v1/videos')
 def get_videos():
     video_list = list(videosCollection.find())
     for video in video_list:
@@ -22,7 +22,7 @@ def get_videos():
         video['_id'] = str(video['_id'])
     return jsonify(video_list)
 
-@app.route('/videos/<string:video_id>', methods=['GET'])
+@app.route('/api/v1/videos/<string:video_id>', methods=['GET'])
 def get_video(video_id):
     try:
         # Convert string to ObjectId

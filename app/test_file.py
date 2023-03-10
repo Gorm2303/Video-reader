@@ -25,7 +25,7 @@ def test_client():
     test_collection.delete_many({})
 
 def test_get_videos(test_client):
-    response = test_client.get('/videos')
+    response = test_client.get('/api/v1/videos')
     assert response.status_code == 200
     assert response.content_type == 'application/json'
     assert len(response.json) == 3
@@ -33,19 +33,19 @@ def test_get_videos(test_client):
 
 def test_get_video(test_client):
     # Test with a valid video ID
-    response = test_client.get('/videos/60e2538a0b140ddc5ec78d95')
+    response = test_client.get('/api/v1/videos/60e2538a0b140ddc5ec78d95')
     assert response.status_code == 200
     assert response.content_type == 'application/json'
     assert response.json['title'] == 'Test Video 1'
 
     # Test with an invalid video ID
-    response = test_client.get('/videos/invalid_id')
+    response = test_client.get('/api/v1/videos/invalid_id')
     assert response.status_code == 400
     assert response.content_type == 'application/json'
     assert response.json['error'] == 'Invalid video ID'
 
     # Test with a nonexistent video ID
-    response = test_client.get('/videos/60e2e4c10b140ddc5ec78d9e')
+    response = test_client.get('/api/v1/videos/60e2e4c10b140ddc5ec78d9e')
     assert response.status_code == 404
     assert response.content_type == 'application/json'
     assert response.json['error'] == 'Video not found'
