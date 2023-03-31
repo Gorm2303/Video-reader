@@ -1,6 +1,7 @@
 from flask import Flask, jsonify
 from pymongo import MongoClient, errors
 from bson.objectid import ObjectId
+import os
 
 app = Flask(__name__)
 
@@ -9,18 +10,23 @@ client = MongoClient('mongodb+srv://admin:admin@cluster0.acahawh.mongodb.net/?re
 db = client['video_db']
 videosCollection = db['videos']
 
-
 @app.route('/')
 def index():
     return 'Welcome to the Video API!'
 
 @app.route('/api/v1/videos')
 def get_videos():
-    video_list = list(videosCollection.find())
-    for video in video_list:
-        # Convert the ObjectId to a string
-        video['_id'] = str(video['_id'])
-    return jsonify(video_list)
+    try:
+        video_list = list(videosCollection.find())
+        if not video_list:
+            return jsonify({'error': 'No videos found'}), 404
+        for video in video_list:
+            # Convert the ObjectId to a string
+            video['_id'] = str(video['_id'])
+        return jsonify(video_list)
+    except Exception as e:
+        return jsonify({'error': 'Error fetching videos: {}'.format(str(e))}), 500
+
 
 @app.route('/api/v1/videos/<string:video_id>', methods=['GET'])
 def get_video(video_id):
