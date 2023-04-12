@@ -34,10 +34,12 @@ def test_index(client):
     assert 'Welcome to the Video API!' in response.get_data(as_text=True)
 
 def test_get_videos(client):
+    videos_collection, inserted_video = setup_db()
     response = client.get('/api/v1/videos')
     assert response.status_code == 200
     data = json.loads(response.get_data(as_text=True))
     assert isinstance(data, list)
+    teardown_db(videos_collection, inserted_video)
 
 def test_get_video(client):
     videos_collection, inserted_video = setup_db()
