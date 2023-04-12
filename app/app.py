@@ -1,15 +1,12 @@
 from flask import Flask, jsonify
-from flask_cors import CORS
 from pymongo import MongoClient, errors
 from bson.objectid import ObjectId
 import os
 
 app = Flask(__name__)
-cors = CORS(app)
-cors = CORS(app, origins=["http://localhost:80"])
 
 # Connect to MongoDB database
-client = MongoClient('mongodb+srv://admin:admin@cluster0.acahawh.mongodb.net/?retryWrites=true&w=majority')
+client = MongoClient(os.environ.get("MONGO_URI"))
 db = client['video_db']
 videosCollection = db['videos']
 

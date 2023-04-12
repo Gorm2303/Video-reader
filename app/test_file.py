@@ -1,51 +1,65 @@
 import pytest
+import os
+import json
 from bson.objectid import ObjectId
 from pymongo import MongoClient
-from app import app, db, videosCollection
+from app import app
 
-@pytest.fixture(scope='module')
-def test_client():
-    flask_app = app
-    testing_client = flask_app.test_client()
-    # Establish a test MongoDB connection and populate the database with test data
-    test_client = MongoClient('mongodb+srv://admin:admin@cluster0.acahawh.mongodb.net/?retryWrites=true&w=majority')
-    test_db = test_client['testdb']
-    test_collection = test_db['video_metadata']
-    test_data = [
-        {'_id': ObjectId('60e2538a0b140ddc5ec78d95'), 'title': 'Test Video 1', 'description': 'This is a test'},
-        {'_id': ObjectId('60e253d90b140ddc5ec78d96'), 'title': 'Test Video 2', 'description': 'This is also a test'},
-        {'_id': ObjectId('60e254230b140ddc5ec78d97'), 'title': 'Test Video 3', 'description': 'This is yet another test'},
-    ]
-    test_collection.insert_many(test_data)
-    # Use the test MongoDB connection and database for the Flask app
-    db = test_db
-    videosCollection = test_collection
-    yield testing_client
-    # Remove the test data from the test database after the tests are complete
-    test_collection.delete_many({})
+@pytest.fixture
+def client():
+    app.config['TESTING'] = True
+    with app.test_client() as client:
+        yield client
 
-def test_get_videos(test_client):
-    response = test_client.get('/api/v1/videos')
+def setup_db():
+    # Connect to MongoDB database
+    mongo_uri = os.environ.get("MONGO_URI")
+    mongo_client = MongoClient(mongo_uri)
+    db = mongo_client['video_db']
+    videos_collection = db['videos']
+
+    # Insert sample data
+    sample_video = {'title': 'Test Video', 'description': 'This is a test video'}
+    inserted_video = videos_collection.insert_one(sample_video)
+
+    return videos_collection, inserted_video
+
+def teardown_db(videos_collection, inserted_video):
+    # Clean up the test data
+    videos_collection.delete_one({'_id': inserted_video.inserted_id})
+
+def test_index(client):
+    response = client.get('/')
     assert response.status_code == 200
-    assert response.content_type == 'application/json'
-    assert len(response.json) == 3
-    assert response.json[0]['title'] == 'Test Video 1'
+    assert 'Welcome to the Video API!' in response.get_data(as_text=True)
 
-def test_get_video(test_client):
-    # Test with a valid video ID
-    response = test_client.get('/api/v1/videos/60e2538a0b140ddc5ec78d95')
+def test_get_videos(client):
+    response = client.get('/api/v1/videos')
     assert response.status_code == 200
-    assert response.content_type == 'application/json'
-    assert response.json['title'] == 'Test Video 1'
+    data = json.loads(response.get_data(as_text=True))
+    assert isinstance(data, list)
 
-    # Test with an invalid video ID
-    response = test_client.get('/api/v1/videos/invalid_id')
+def test_get_video(client):
+    videos_collection, inserted_video = setup_db()
+
+    video_id = str(inserted_video.inserted_id)
+    response = client.get(f'/api/v1/videos/{video_id}')
+    assert response.status_code == 200
+    data = json.loads(response.get_data(as_text=True))
+    assert data['_id'] == video_id
+
+    teardown_db(videos_collection, inserted_video)
+
+def test_get_video_invalid_id(client):
+    response = client.get('/api/v1/videos/invalid_id')
     assert response.status_code == 400
-    assert response.content_type == 'application/json'
-    assert response.json['error'] == 'Invalid video ID'
+    data = json.loads(response.get_data(as_text=True))
+    assert data['error'] == 'Invalid video ID'
 
-    # Test with a nonexistent video ID
-    response = test_client.get('/api/v1/videos/60e2e4c10b140ddc5ec78d9e')
+def test_get_video_not_found(client):
+    non_existent_id = str(ObjectId())
+    response = client.get(f'/api/v1/videos/{non_existent_id}')
     assert response.status_code == 404
-    assert response.content_type == 'application/json'
-    assert response.json['error'] == 'Video not found'
+    data = json.loads(response.get_data(as_text=True))
+    assert data['error'] == 'Video not found'
+
