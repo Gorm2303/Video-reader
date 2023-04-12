@@ -1,5 +1,5 @@
 from flask import Flask, jsonify
-from pymongo import MongoClient, errors
+from pymongo import MongoClient
 from bson.objectid import ObjectId
 from bson.errors import InvalidId
 import os
@@ -43,7 +43,7 @@ def get_video(video_id):
         else:
             # Return a 404 error response if the video was not found
             return jsonify({'error': 'Video not found'}), 404
-    except errors.InvalidId:
+    except InvalidId:
         # Return a 400 error response if the video ID is invalid
         return jsonify({'error': 'Invalid video ID'}), 400
 
